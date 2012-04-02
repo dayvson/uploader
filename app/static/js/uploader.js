@@ -1,11 +1,11 @@
 (function(doc, win){
   var _uploader = function(form, inputFile, progressUrl, timeForUpdate){ //change to use options args
 
-    this.form = typeof(form) === "string" ? util.$(form) : form;
-    this.input = typeof(inputFile) === "string" ? util.$(inputFile) : inputFile;
+    this.form = typeof(form) === "string" ? Util.$(form) : form;
+    this.input = typeof(inputFile) === "string" ? Util.$(inputFile) : inputFile;
     this.progressUrl = progressUrl;
     this.timeForUpdate = timeForUpdate;
-    this.xhrSupport = util.hasXHRUpload();
+    this.xhrSupport = Util.hasXHRUpload();
     this.timeInterval;
     this.isUploadComplete = false;
     this.init();
@@ -20,7 +20,7 @@
       this.form.setAttribute("enctype","multipart/form-data");
       this.form.setAttribute("encoding", "multipart/form-data");
       this.form.setAttribute("method" , "post");
-      util.addEvent(this.input, "change", this._onChangeInput, this);
+      Util.addEvent(this.input, "change", this._onChangeInput, this);
     },
     _onChangeInput:function(){
       if(this.xhrSupport){
@@ -30,20 +30,20 @@
       }
     },
     startUploadByXHR:function(){
-      this.key = util.getKey();
+      this.key = Util.getKey();
       var fd = new FormData();
       var file = this.input.files[0];
       fd.append("fileToUpload", file);
       var xhr = new XMLHttpRequest();
-      util.addEvent(xhr.upload, "progress", this._uploadProgress, this);
-      util.addEvent(xhr, "load", this._uploadComplete, this);
-      util.addEvent(xhr, "error", this._uploadFailed, this);
-      util.addEvent(xhr, "abort", this._uploadCanceled, this);
+      Util.addEvent(xhr.upload, "progress", this._uploadProgress, this);
+      Util.addEvent(xhr, "load", this._uploadComplete, this);
+      Util.addEvent(xhr, "error", this._uploadFailed, this);
+      Util.addEvent(xhr, "abort", this._uploadCanceled, this);
       xhr.open("POST", this.form.action + "?uploadKey=" + this.key);
       xhr.setRequestHeader("X-FileName", file.name);
       xhr.setRequestHeader("FileType", file.type);
       xhr.setRequestHeader("Content-Type", file.type);
-      //xhr.setRequestHeader("Content-length", file.size);
+      xhr.setRequestHeader("Content-length", file.size);
       xhr.setRequestHeader("FileSize", file.size);
       xhr.send(fd);
       this.onStart();
@@ -83,19 +83,19 @@
     },
     _uploadProgressByIframe:function(){
       var params = "?uploadKey=" + this.key + "&rand="+new Date().getTime();
-      util.XHR(this.progressUrl, "GET", util.delegate(this,this._onCompleteXHRPooling), params);
+      Util.XHR(this.progressUrl, "GET", Util.delegate(this,this._onCompleteXHRPooling), params);
     },
     startUploadByIframe:function(){
-      this.key = util.getKey();
+      this.key = Util.getKey();
       var iframeId = this.key + "__upload_iframe__";
-      var iframe = util.create("iframe", {
+      var iframe = Util.create("iframe", {
        "id": iframeId,
        "name": iframeId,
        "width":"0", "height":"0", "border":"0",
        "style":"width: 0; height: 0; border: none;"
       });
      
-      util.addEvent(iframe, "load", this.onLoadIframe, this);
+      Util.addEvent(iframe, "load", this.onLoadIframe, this);
       this.iframe = iframe;
       this.form.parentNode.appendChild(iframe);
       win.frames[iframeId].name = iframeId;
@@ -112,10 +112,10 @@
     },
     onLoadIframe:function(){
       var iframeId = this.key + "__upload_iframe__";
-      var iframe = util.$(iframeId);
+      var iframe = Util.$(iframeId);
       this.isUploadComplete = true;
       clearTimeout(this.timeInterval);
-      //util.removeEvent(this.iframe, "load");
+      //Util.removeEvent(this.iframe, "load");
       var content = "";
       if (iframe.contentDocument) {
           content = iframe.contentDocument.body.innerHTML;
@@ -126,17 +126,17 @@
       }
       this.onComplete(content);
       setTimeout(function(){
-        util.remove(util.$(iframeId));
+        Util.remove(Util.$(iframeId));
       }, 250);
 
     }
   }
   var _superUpload = function(form, inputFile, description, saveButton, 
                               progressUrl, saveUrl, timeForUpdate ){
-    this.form = util.$(form);
-    this.inputFile = util.$(inputFile);
-    this.description = util.$(description);
-    this.saveButton = util.$(saveButton);
+    this.form = Util.$(form);
+    this.inputFile = Util.$(inputFile);
+    this.description = Util.$(description);
+    this.saveButton = Util.$(saveButton);
     this.progressUrl = progressUrl;
     this.saveUrl = saveUrl;
     this.timeForUpdate = timeForUpdate;
@@ -145,11 +145,11 @@
   _superUpload.prototype = {
     init:function(){
       this.file = new Uploader(this.form, this.inputFile, this.progressUrl, this.timeForUpdate);
-      util.addEvent(this.saveButton, "click", this._onClickSave, this);
+      Util.addEvent(this.saveButton, "click", this._onClickSave, this);
     },
     _onClickSave:function(){
       var params = "uploadKey=" + this.key + "&description="+ this.description.value;
-      util.XHR(this.saveUrl, "POST", util.delegate(this,this._onSaveComplete), params);
+      Util.XHR(this.saveUrl, "POST", Util.delegate(this,this._onSaveComplete), params);
       
     },
     _onSaveComplete:function(data){
