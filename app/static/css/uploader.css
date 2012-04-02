@@ -1,0 +1,12 @@
+#uploader{background: #ff7800; width: 400px; margin: 0 auto; padding: 10px;}
+
+#uploader h1{font:normal 24px Arial; color: #fff; margin:0 0 20px 0; border-bottom: 1px dotted #ffcc00;}
+#uploader a{font: normal 12px Arial; margin: 10px 0; display: block; text-decoration: none; color: #fffb00;}
+#uploader a:hover{text-decoration: underline}
+#uploader textarea{background:#fffff6; width: 400px; border: 1px inset #ca99fa; margin: 10px 0;}
+
+#uploader #progressBar{float: left; width: 150px; height: 12px; border: 1px solid #fff; overflow: hidden; margin: 10px 5px 0 0; -moz-border-radius: 8px; border-radius: 8px;}
+#uploader #progressFill{background: #fff; width: 0%; height: 12px; -moz-border-radius: 8px; border-radius: 8px;text-align:right; font:normal 10px Arial; color:#ff7800;}
+
+#uploader #datafile{width: 380px;}
+#uploader #savebutton{background:#000; border: 0px none; -moz-border-radius: 4px; border-radius: 4px; color: #ff7800; padding: 3px}
