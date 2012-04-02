@@ -33,7 +33,8 @@
       this.key = Util.getKey();
       var fd = new FormData();
       var file = this.input.files[0];
-      fd.append("fileToUpload", file);
+      fd.append(this.input.name, file);
+      console.log(this.input.name);
       var xhr = new XMLHttpRequest();
       Util.addEvent(xhr.upload, "progress", this._uploadProgress, this);
       Util.addEvent(xhr, "load", this._uploadComplete, this);
