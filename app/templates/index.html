@@ -1,0 +1,45 @@
+<html>
+
+<head>
+<title>Super Upload</title>
+<link rel="stylesheet" href="/static/uploader.css" type="text/css" />
+</head>
+<body>
+  <form action="/uploader" enctype="multipart/form-data" method="POST" name="uploader" id="uploader">
+    <h1>Super Upload</h1>
+    <input type="file" name="datafile" id="datafile"/><br / >
+    <div id="progressNumber">
+      <div id="progressBar">
+        <div id="progressFill"></div>
+      </div>
+    </div> <a href="#" id="uploadLink"></a>
+    <textarea cols="50" rows="5" id="description" name="description"></textarea>
+    <input type="button" value="save" id="savebutton" disabled="disabled" />
+</form>
+<script type="javascript/text" src="/static/util.js"></script>
+<script type="javascript/text" src="/static/uploader.js"></script>
+<script>
+    window.onload = function(){
+      var superUpload = new SuperUpload("uploader", "datafile", "description", 
+                                        "savebutton", "/progress", "/save", 1000);
+      superUpload.file.onProgress = function(bytes_loaded, bytes_total, perc){   
+          Util.$("progressFill").style.width = perc + "%";
+          Util.$("progressFill").innerHTML = perc+ "%";
+      }
+      superUpload.file.onStart = function(){
+        this.input.disabled = true;
+        Util.$("savebutton").disabled = true;
+        Util.$("uploadLink").href="#";
+        Util.$("uploadLink").innerHTML = "";
+      }
+      superUpload.file.onComplete = function(data){
+          this.onProgress(1,1,100);
+          Util.$("uploadLink").href=data;
+          Util.$("uploadLink").innerHTML = "Uploaded to Here";
+          Util.$("savebutton").disabled = false;
+          this.input.disabled = false;
+      }
+    }
+</script>
+</body>
+</html>
