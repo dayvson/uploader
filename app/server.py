@@ -51,8 +51,7 @@ class UploadHandler(StreamRequestHandler):
     def post(self):
         headers = self.request.headers
         self.uuid = self.get_argument('uploadKey')
-        tempName = headers.get("X-FileName")
-        fileName = self.uuid + tempName;
+        fileName = self.uuid;
         self.temp_file = open(fileName, 'w')
         self.bytes_loaded = 0
         self.request.request_continue()

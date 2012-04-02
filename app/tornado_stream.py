@@ -26,19 +26,22 @@ from tornado.util import b
 
 class StreamHTTPServer(tornado.httpserver.HTTPServer):
     def handle_stream(self, stream, address):
-        StreamHTTPConnection(stream, address, self.request_callback,self.no_keep_alive, self.xheaders)
+        StreamHTTPConnection(stream, address, self.request_callback, self.no_keep_alive, self.xheaders)
     
 class StreamHTTPRequest(tornado.httpserver.HTTPRequest):
     def request_continue(self):
+        logging.warning("REQUEST CONTINUE")
         if self.headers.get("Expect") == "100-continue":
             self.connection.stream.write(b("HTTP/1.1 100 (Continue)\r\n\r\n"))
 
     def _read_body(self, exec_req_cb):
         self.request_continue()
+        logging.warning( "READ BODY")
         self.connection.stream.read_bytes(self.content_length,\
             lambda data: self._on_request_body(data, exec_req_cb))
 
     def _on_request_body(self, data, exec_req_cb):
+        logging.warning( " _on_request_body READ BODY")
         self.body = data
         content_type = self.headers.get("Content-Type", "")
         if self.method in ("POST", "PUT"):
@@ -51,6 +54,7 @@ class StreamHTTPRequest(tornado.httpserver.HTTPRequest):
             elif content_type.startswith("multipart/form-data"):
                 fields = content_type.split(";")
                 for field in fields:
+                    logging.warning( "FIELD >>> %s" % field)
                     k, sep, v = field.strip().partition("=")
                     if k == "boundary" and v:
                         tornado.httputil.parse_multipart_form_data(utf8(v), data,\
@@ -95,11 +99,13 @@ class StreamRequestHandler(tornado.web.RequestHandler):
     def _execute(self, transforms, *args, **kwargs):
         self._transforms = transforms
         try:
+            logging.warning(self.request)
             if self.request.method not in self.SUPPORTED_METHODS:
                 raise HTTPError(405)
             exec_req_cb = lambda: super(StreamRequestHandler,self)._execute(transforms, *args, **kwargs)
             if (getattr(self, '_read_body', True) and
                 hasattr(self.request, 'content_length')):
+                logging.warning("CALL READ BODY DO REQUEST >>> %s" % self.request)
                 self.request._read_body(exec_req_cb)
             else:
                 exec_req_cb()
