@@ -17,31 +17,43 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Entry point file for the superuploader.
+This module's goal is to provide a uploader system with progress
+for soundcloud challenge.
+This file run() does this job by starting the http server (Tornado).
+"""
 import logging
-import tornado.ioloop, tornado.web, tornado.httpserver, tornado.httputil
+import tornado.ioloop
+import tornado.web
+import tornado.httpserver
+import tornado.httputil
 from tornado.web import asynchronous
 from tornado.escape import utf8, native_str, parse_qs_bytes
 from tornado.httpserver import _BadRequestException
 from tornado.util import b
 
+
 class StreamHTTPServer(tornado.httpserver.HTTPServer):
     def handle_stream(self, stream, address):
-        StreamHTTPConnection(stream, address, self.request_callback, self.no_keep_alive, self.xheaders)
-    
+        logging.warning("[[[[[[[[[[[[[[[[[[ON HANDLE STREAM ]]]]]]]]]]]]]]]]]]")
+        StreamHTTPConnection(stream, address, self.request_callback, \
+                            self.no_keep_alive, self.xheaders)
+
+
 class StreamHTTPRequest(tornado.httpserver.HTTPRequest):
     def request_continue(self):
-        logging.warning("REQUEST CONTINUE")
+        logging.warning("[[[[[[[[[[[[[[[[[[ON REQUEST CONTINUE]]]]]]]]]]]]]]]]]]")
         if self.headers.get("Expect") == "100-continue":
             self.connection.stream.write(b("HTTP/1.1 100 (Continue)\r\n\r\n"))
 
     def _read_body(self, exec_req_cb):
         self.request_continue()
-        logging.warning( "READ BODY")
+        logging.warning("[[[[[[[[[[[[[[[[[[ON READ BODY]]]]]]]]]]]]]]]]]]")
         self.connection.stream.read_bytes(self.content_length,\
             lambda data: self._on_request_body(data, exec_req_cb))
 
     def _on_request_body(self, data, exec_req_cb):
-        logging.warning( " _on_request_body READ BODY")
+        logging.warning("[[[[[[[[[[[[[[[[[[ON REQUEST BODY]]]]]]]]]]]]]]]]]]")
         self.body = data
         content_type = self.headers.get("Content-Type", "")
         if self.method in ("POST", "PUT"):
@@ -50,23 +62,27 @@ class StreamHTTPRequest(tornado.httpserver.HTTPRequest):
                 for name, values in arguments.iteritems():
                     values = [v for v in values if v]
                     if values:
-                        self.arguments.setdefault(name, []).extend(values)
+                        self.arguments.setdefault(name, []).extend(
+                            values)
             elif content_type.startswith("multipart/form-data"):
                 fields = content_type.split(";")
                 for field in fields:
-                    logging.warning( "FIELD >>> %s" % field)
                     k, sep, v = field.strip().partition("=")
                     if k == "boundary" and v:
-                        tornado.httputil.parse_multipart_form_data(utf8(v), data,\
-                        self.arguments, self.files)
+                        httputil.parse_multipart_form_data(
+                            utf8(v), data,
+                            self.arguments,
+                            self.files)
                         break
                 else:
                     logging.warning("Invalid multipart/form-data")
         exec_req_cb()
 
+
 class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
     def _on_headers(self, data):
         try:
+            logging.warning("[[[[[[[[[[[[[[[[[[ON HEADERS HTTPCONNECTION]]]]]]]]]]]]]]]]]]")
             data = native_str(data.decode('latin1'))
             eol = data.find("\r\n")
             start_line = data[:eol]
@@ -75,19 +91,18 @@ class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
             except ValueError:
                 raise _BadRequestException("Malformed HTTP request line")
             if not version.startswith("HTTP/"):
-                raise _BadRequestException("Malformed HTTP version in HTTP Request-Line")
+                raise _BadRequestException("Malformed HTTP version in \
+                                            HTTP Request-Line")
             headers = tornado.httputil.HTTPHeaders.parse(data[eol:])
-            self._request = StreamHTTPRequest(
-                connection=self, method=method, uri=uri, version=version,
-                headers=headers, remote_ip=self.address[0])
-
+            self._request = StreamHTTPRequest(connection=self, method=method,\
+                            uri=uri, version=version, headers=headers,\
+                            remote_ip=self.address[0])
             content_length = headers.get("Content-Length")
             if content_length:
                 content_length = int(content_length)
                 if content_length > self.stream.max_buffer_size:
                     raise _BadRequestException("Content-Length too long")
                 self._request.content_length = content_length
-                
             self.request_callback(self._request)
         except _BadRequestException, e:
             logging.info("Malformed HTTP request from %s: %s",
@@ -95,17 +110,20 @@ class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
             self.stream.close()
             return
 
-class StreamRequestHandler(tornado.web.RequestHandler):      
+
+class StreamRequestHandler(tornado.web.RequestHandler):
     def _execute(self, transforms, *args, **kwargs):
         self._transforms = transforms
         try:
-            logging.warning(self.request)
             if self.request.method not in self.SUPPORTED_METHODS:
                 raise HTTPError(405)
-            exec_req_cb = lambda: super(StreamRequestHandler,self)._execute(transforms, *args, **kwargs)
-            if (getattr(self, '_read_body', True) and
-                hasattr(self.request, 'content_length')):
-                logging.warning("CALL READ BODY DO REQUEST >>> %s" % self.request)
+            exec_req_cb = lambda: \
+                super(StreamRequestHandler, self)._execute(transforms, *args, **kwargs)
+            logging.warning("[[[[[[[[[[[[[[[[[[ON EXECUTE]]]]]]]]]]]]]]]]]]")
+            logging.warning("%s ==> %s" % (hasattr(self.request, 'content_length'), \
+                            getattr(self, '_read_body', True)))
+            if (hasattr(self.request, 'content_length') and
+                getattr(self, '_read_body', True)):
                 self.request._read_body(exec_req_cb)
             else:
                 exec_req_cb()

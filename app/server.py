@@ -18,40 +18,31 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Entry point file for the superuploader.
-
-This module's goal is to provide a uploader system with progress for soundcloud challenge. 
+This module's goal is to provide a uploader system with progress
+for soundcloud.
 This file run() does this job by starting the http server (Tornado).
 """
-import uuid, tempfile
+import uuid
+import tempfile
 import logging
 from tornado_stream import *
-import tornado.ioloop, tornado.web, tornado.httpserver
+import tornado.ioloop
+import tornado.web
+import tornado.httpserver
+from ConfigParser import ConfigParser
 
-def get_uuid():
-    return str(uuid.uuid1().hex)
 
-class FileCache:
-    FILES = dict()
-    @classmethod
-    def push(cls, uuid, value):
-        cls.FILES[uuid] = value
-        return True
-    @classmethod
-    def delete(cls, uuid):
-        del cls.FILES[uuid]
-        return True
-    @classmethod
-    def get(cls, uuid):
-        if cls.FILES.has_key(uuid):
-            return cls.FILES[uuid]
-        return None
+UPLOADS_KEYS = dict()
+STATIC_DIR = "./static/"
+TEMPLATE_DIR = "./templates/"
+UPLOAD_FILES_DIR = "../data/"
 
 @streamUpload
 class UploadHandler(StreamRequestHandler):
     def post(self):
         headers = self.request.headers
         self.uuid = self.get_argument('uploadKey')
-        fileName = self.uuid;
+        fileName = UPLOAD_FILES_DIR + self.uuid
         self.temp_file = open(fileName, 'w')
         self.bytes_loaded = 0
         self.request.request_continue()
@@ -59,7 +50,8 @@ class UploadHandler(StreamRequestHandler):
         self._read()
 
     def _read(self):
-        chunk_size = min(10000, self.request.content_length - self.bytes_loaded)
+        diff_length = self.request.content_length - self.bytes_loaded
+        chunk_size = min(10000, diff_length)
         if chunk_size > 0:
             self.request.connection.stream.read_bytes(chunk_size, self._increase)
         else:
@@ -72,15 +64,16 @@ class UploadHandler(StreamRequestHandler):
             self.bytes_loaded += len(chunk)
         else:
             self.content_length = self.bytes_loaded
-        json_struc = {"bytes_loaded": self.bytes_loaded, "bytes_total":self.bytes_total}
-        FileCache.push(self.uuid, json_struc)
+        json_struc = {"bytes_loaded": self.bytes_loaded,
+                      "bytes_total": self.bytes_total}
+        UPLOADS_KEYS[self.uuid] = json_struc
         self._read()
 
     def _upload_complete(self):
+        del UPLOADS_KEYS[self.uuid]
         self.write(self.uuid)
         self.finish()
-    def get(self):
-        self.render("templates/index.html")
+
 
 class SaveHandler(tornado.web.RequestHandler):
     def post(self):
@@ -88,29 +81,40 @@ class SaveHandler(tornado.web.RequestHandler):
         path = uuid
         description = self.get_argument('description')
         self.write(path + "\n" + description)
-        self.render("templates/finish.html")
-        
+        self.render(TEMPLATE_DIR + "finish.html")
+
+
 class ProgressHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write(str(FileCache.get(self.get_argument('uploadKey'))))
+        if(UPLOADS_KEYS.has_key(self.get_argument('uploadKey'))):
+            file_struc = UPLOADS_KEYS.get(self.get_argument('uploadKey'))
+            self.write(str(file_struc))
         self.set_header("Content-Type", "application/json")
-        
+
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        self.render("templates/index.html")
+        self.render(TEMPLATE_DIR + "index.html")
+
 
 def run():
+    config = ConfigParser()
+    config.read("../uploader.conf")
+    TEMPLATE_DIR = config.get('http', 'template_dir')
+    UPLOAD_FILES_DIR = config.get('http', 'upload_files_dir')
+    STATIC_DIR = config.get('http', 'static_dir')
     application = tornado.web.Application([
-        (r"/static/(.*)",   tornado.web.StaticFileHandler, {"path": "/Users/dayvson/uploader/app/static/"}),
+        (r"/static/(.*)",   tornado.web.StaticFileHandler, \
+                            {"path": STATIC_DIR}),
         (r"/uploader",      UploadHandler),
         (r"/progress",      ProgressHandler),
         (r"/save",          SaveHandler),
         (r"/",              MainHandler)
     ])
     http_server = StreamHTTPServer(application)
-    http_server.listen(8888)
+    http_server.listen(config.get('http', 'port'),config.get('http', 'host'))
     tornado.ioloop.IOLoop.instance().start()
+
 
 if __name__ == "__main__":
     run()
-
