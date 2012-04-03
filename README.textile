@@ -1,0 +1,31 @@
+How to for installation and for running
+
+INSTALLATION:
+
+Automatic installation: Tornado is listed in PyPI and can be installed with pip or easy_install. Note that the source distribution includes demo applications that are not present when Tornado is installed in this way, so you may wish to download a copy of the source tarball as well.
+
+Manual installation: Download tornado-2.2.tar.gz (https://github.com/downloads/facebook/tornado/tornado-2.2.tar.gz)
+
+$ tar xvzf tornado-2.2.tar.gz
+$ cd tornado-2.2
+$ python setup.py build
+$ sudo python setup.py install
+
+
+CONFIGURATION:
+Create a new configuration file based on the uploader.conf.sample and call him uploader.conf
+Edit as you wish:
+[http]
+debug = true
+host = 0.0.0.0
+port = 8888
+upload_files_dir = /Users/dayvson/uploader/data/
+template_dir = templates
+static_dir = /Users/dayvson/uploader/app/static/
+
+
+
+RUN:
+You can run this project using makefile
+
+$ make 
