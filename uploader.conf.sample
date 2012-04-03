@@ -1,0 +1,7 @@
+[http]
+debug = true
+host = 0.0.0.0
+port = 8888
+upload_files_dir = data
+template_dir = app/templates
+static_dir = app/static
