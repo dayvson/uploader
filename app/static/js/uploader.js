@@ -1,6 +1,5 @@
 (function(doc, win){
   var _uploader = function(form, inputFile, progressUrl, uploadUrl, timeForUpdate){ //change to use options args
-
     this.form = typeof(form) === "string" ? Util.$(form) : form;
     this.input = typeof(inputFile) === "string" ? Util.$(inputFile) : inputFile;
     this.progressUrl = progressUrl;
@@ -24,7 +23,6 @@
       Util.addEvent(this.input, "change", this._onChangeInput, this);
     },
     _onChangeInput:function(){
-      this.xhrSupport = false;
       if(this.xhrSupport){
         this.startUploadByXHR();
       }else{
@@ -96,7 +94,7 @@
       this.form.parentNode.appendChild(iframe);
       win.frames[iframeId].name = iframeId;
       this.form.setAttribute("target", iframeId);
-      this.form.setAttribute("action", this.uploadUrl + "?uploadKey=" + this.key); //usar um hidden
+      this.form.setAttribute("action", this.uploadUrl + "?uploadKey=" + this.key);
       this.form.submit();
       this.onStart();
       this.onProgress(0, -1, 0);
@@ -111,12 +109,16 @@
       this.isUploadComplete = true;
       clearTimeout(this.timeInterval);
       var content = "";
-      if (iframe.contentDocument) {
-          content = iframe.contentDocument.body.innerHTML;
-      } else if (iframe.contentWindow) {
-          content = iframe.contentWindow.document.body.innerHTML;
-      } else if (iframe.document) {
-          content = iframe.document.body.innerHTML;
+      try{
+        if (iframe.contentDocument) {
+            content = iframe.contentDocument.body.innerHTML;
+        } else if (iframe.contentWindow) {
+            content = iframe.contentWindow.document.body.innerHTML;
+        } else if (iframe.document) {
+            content = iframe.document.body.innerHTML;
+        }
+      }catch(e){
+        
       }
       this.onComplete(content);
       setTimeout(function(){
