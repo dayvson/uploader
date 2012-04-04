@@ -60,7 +60,6 @@
       xmlhttp.open(method, method == "GET" ? url+params : url);
       xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
       xmlhttp.setRequestHeader("Content-length", params.length);
-      xmlhttp.setRequestHeader("Connection", "close");
       xmlhttp.send(params);
     },
     
