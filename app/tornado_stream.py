@@ -17,11 +17,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Entry point file for the superuploader.
-This module's goal is to provide a uploader system with progress
-for soundcloud challenge.
-This file run() does this job by starting the http server (Tornado).
 """
+This module's goal is to provide a stream request for every post
+All documentation notes are in the middle of class to explain
+the problem and the design solution adopted
+"""
+
+
 import logging
 import tornado.ioloop
 import tornado.web
@@ -29,60 +31,34 @@ import tornado.httpserver
 import tornado.httputil
 from tornado.web import asynchronous
 from tornado.escape import utf8, native_str, parse_qs_bytes
-from tornado.httpserver import _BadRequestException
+from tornado.httpserver import _BadRequestException, HTTPRequest
 from tornado.util import b
 
 
 class StreamHTTPServer(tornado.httpserver.HTTPServer):
+    # Just override handle_stream method to instance my StreamHTTPConnection
     def handle_stream(self, stream, address):
-        logging.warning("[[[[[[[[[[[[[[[[[[ON HANDLE STREAM ]]]]]]]]]]]]]]]]]]")
         StreamHTTPConnection(stream, address, self.request_callback, \
                             self.no_keep_alive, self.xheaders)
 
 
-class StreamHTTPRequest(tornado.httpserver.HTTPRequest):
-    def request_continue(self):
-        logging.warning("[[[[[[[[[[[[[[[[[[ON REQUEST CONTINUE]]]]]]]]]]]]]]]]]]")
-        if self.headers.get("Expect") == "100-continue":
-            self.connection.stream.write(b("HTTP/1.1 100 (Continue)\r\n\r\n"))
-
-    def _read_body(self, exec_req_cb):
-        self.request_continue()
-        logging.warning("[[[[[[[[[[[[[[[[[[ON READ BODY]]]]]]]]]]]]]]]]]]")
-        self.connection.stream.read_bytes(self.content_length,\
-            lambda data: self._on_request_body(data, exec_req_cb))
-
-    def _on_request_body(self, data, exec_req_cb):
-        logging.warning("[[[[[[[[[[[[[[[[[[ON REQUEST BODY]]]]]]]]]]]]]]]]]]")
-        self.body = data
-        content_type = self.headers.get("Content-Type", "")
-        if self.method in ("POST", "PUT"):
-            if content_type.startswith("application/x-www-form-urlencoded"):
-                arguments = parse_qs_bytes(native_str(self.body))
-                for name, values in arguments.iteritems():
-                    values = [v for v in values if v]
-                    if values:
-                        self.arguments.setdefault(name, []).extend(
-                            values)
-            elif content_type.startswith("multipart/form-data"):
-                fields = content_type.split(";")
-                for field in fields:
-                    k, sep, v = field.strip().partition("=")
-                    if k == "boundary" and v:
-                        httputil.parse_multipart_form_data(
-                            utf8(v), data,
-                            self.arguments,
-                            self.files)
-                        break
-                else:
-                    logging.warning("Invalid multipart/form-data")
-        exec_req_cb()
-
-
 class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
+    """StreamHTTPConnection was designer to provide a solution
+    for reading chunks afterparse the headers
+    """
+    def __init__(self, stream, address, request_callback, no_keep_alive=False,
+                 xheaders=False):
+        super(StreamHTTPConnection, self).__init__(
+            stream, address, request_callback, no_keep_alive, xheaders)
+
+        # Just read the comments on our `_on_handlers' method and
+        # realize why I created such an attribute
+        self.readed_data = ''
+        self.chunk_size = 4096
+        self.content_length = 0
+
     def _on_headers(self, data):
         try:
-            logging.warning("[[[[[[[[[[[[[[[[[[ON HEADERS HTTPCONNECTION]]]]]]]]]]]]]]]]]]")
             data = native_str(data.decode('latin1'))
             eol = data.find("\r\n")
             start_line = data[:eol]
@@ -91,55 +67,65 @@ class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
             except ValueError:
                 raise _BadRequestException("Malformed HTTP request line")
             if not version.startswith("HTTP/"):
-                raise _BadRequestException("Malformed HTTP version in \
-                                            HTTP Request-Line")
+                raise _BadRequestException(
+                        "Malformed HTTP version in HTTP Request-Line")
             headers = tornado.httputil.HTTPHeaders.parse(data[eol:])
-            self._request = StreamHTTPRequest(connection=self, method=method,\
-                            uri=uri, version=version, headers=headers,\
-                            remote_ip=self.address[0])
-            content_length = headers.get("Content-Length")
-            if content_length:
-                content_length = int(content_length)
-                if content_length > self.stream.max_buffer_size:
-                    raise _BadRequestException("Content-Length too long")
-                self._request.content_length = content_length
-            self.request_callback(self._request)
+
+            self._request = HTTPRequest(
+                connection=self, method=method, uri=uri, version=version,
+                headers=headers, remote_ip=self.address[0])
+            self.content_length = int(self._request.headers\
+                                    .get("Content-Length") or 0)
+
+            # The code above was taken from the tornado.httpserver
+            # module. It's perfect till now. My problem starts on the
+            # next lines when our very smart async framework just tries
+            # to read the whole content of received request, instead of
+            # reading chunks.
+            if self.content_length:
+                self.read_chunk()
+            else:
+                self.request_callback(self._request)
+
         except _BadRequestException, e:
             logging.info("Malformed HTTP request from %s: %s",
                          self.address[0], e)
             self.stream.close()
             return
+    def reset_connection(self):
+        self.readed_data = ''
+        self.chunk_size = 4096
+        self.content_length = 0
 
+    def read_chunk(self):
+        # To fix this problem we have an attribute that holds the size
+        # of data readed and I compare this size with content-length
+        # and we'll return the 100-continue http status until this
+        # readed size becomes the same as content-length.
+        chunk_size = min(
+            self.chunk_size,
+            self.content_length - len(self.readed_data))
 
-class StreamRequestHandler(tornado.web.RequestHandler):
-    def _execute(self, transforms, *args, **kwargs):
-        self._transforms = transforms
-        try:
-            if self.request.method not in self.SUPPORTED_METHODS:
-                raise HTTPError(405)
-            exec_req_cb = lambda: \
-                super(StreamRequestHandler, self)._execute(transforms, *args, **kwargs)
-            logging.warning("[[[[[[[[[[[[[[[[[[ON EXECUTE]]]]]]]]]]]]]]]]]]")
-            logging.warning("%s ==> %s" % (hasattr(self.request, 'content_length'), \
-                            getattr(self, '_read_body', True)))
-            if (hasattr(self.request, 'content_length') and
-                getattr(self, '_read_body', True)):
-                self.request._read_body(exec_req_cb)
-            else:
-                exec_req_cb()
-        except Exception, e:
-            self._handle_request_exception(e)
+        if chunk_size > 0:
+            self.stream.read_bytes(chunk_size, self._on_read_chunk)
+            self.stream.write(b("HTTP/1.1 100 (Continue)\r\n\r\n"))
+            self.request_callback(self._request)
+        else:
+            self._on_request_body(self.readed_data)
 
+    def _on_read_chunk(self, data):
+        # It is a design decision to save the current data in an
+        # attribute and this in the memory. The readed data object could
+        # be a data handler instance that knows when to save in memory
+        # and when to save on the disk, based for example in the upload
+        # size.
+        self.readed_data += data
 
-def streamUpload(cls):
-    class StreamUpload(cls):
-        def __init__(self, *args, **kwargs):
-            if args[0]._wsgi:
-                raise Exception("@streamUpload is not supported for WSGI apps")
-            self._read_body = False
-            if hasattr(cls, 'post'):
-                cls.post = asynchronous(cls.post)
-            if hasattr(cls, 'put'):
-                cls.put = asynchronous(cls.put)
-            cls.__init__(self, *args, **kwargs)
-    return StreamUpload
+        # I don't need to read the whole buffer to realize that it's
+        # bigger than the size tornado expects by default
+        if len(data) > self.stream.max_buffer_size:
+            logging.info("Malformed HTTP request from %s: %s",
+                         self.address[0], e)
+            self.stream.close()
+            return
+        self.read_chunk()
