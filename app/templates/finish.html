@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Super Upload</title>
+<link rel="stylesheet" href="/static/css/uploader.css" type="text/css" />
+</head>
+<body>
+    <h1>Super Upload</h1>
+    {% if item %}
+    <a href="/download/{{item['fileName']}}">{{item['fileName']}}</a><br>
+    {{ item['description'] }}
+    {% end %}
+</form>
+
+</body>
+</html>
