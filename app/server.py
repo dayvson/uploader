@@ -24,7 +24,6 @@ This file run() does this job by starting the http server (Tornado).
 """
 import os.path
 import uuid
-import json
 import logging
 import tornado.ioloop
 import tornado.web
@@ -35,6 +34,8 @@ from tornado_stream import StreamHTTPServer
 
 
 UPLOADS_KEYS = dict()
+
+
 class Configuration:
     STATIC_DIR = "./static/"
     TEMPLATE_DIR = "./templates/"
@@ -51,35 +52,31 @@ class UploadHandler(tornado.web.RequestHandler):
 
     @asynchronous
     def post(self):
-        self.request.connection.read_stream = True
         uuid = self.get_argument('uploadKey')
         UPLOADS_KEYS[uuid] = {
             "bytes_loaded": len(self.request.connection.readed_data),
             "bytes_total": self.content_length
         }
-        if len(self.request.connection.readed_data) == self.content_length:
+        bytes_loaded = len(self.request.connection.readed_data)
+        if  bytes_loaded == self.content_length:
             name = self.request.files['datafile'][0].filename or ""
             fileName = uuid + name
             UPLOADS_KEYS[uuid]['fileName'] = fileName
-            output = open(os.path.join(Configuration.UPLOAD_FILES_DIR, 
-                                        fileName), 'w')
+            self.write("/download/" + fileName)
+            output = open(os.path.join(Configuration.UPLOAD_FILES_DIR,
+                            fileName), 'w')
             output.write(self.request.files['datafile'][0].body)
             output.close()
-            self.request.connection.reset_connection()
-            self.write("/download/" + fileName)
+            print "FINISH UPLOAD"
             self.finish()
 
 
 class SaveHandler(tornado.web.RequestHandler):
-    @property
-    def content_length(self):
-        return int(self.request.headers['Content-Length'])
-
     def post(self):
         uuid = self.get_argument('uploadKey', None)
-        description = self.get_argument('description', "")
+        description = unicode(self.get_argument('description', ""))
         if uuid in UPLOADS_KEYS:
-            UPLOADS_KEYS[uuid]['description'] = description
+            UPLOADS_KEYS[uuid]['description'] = unicode(description)
             self.write("{success:true}")
         else:
             self.write("{success:false}")
@@ -89,15 +86,17 @@ class SaveHandler(tornado.web.RequestHandler):
         data_result = None
         if uuid in UPLOADS_KEYS:
             data_result = UPLOADS_KEYS[uuid]
-        self.render(Configuration.TEMPLATE_DIR + "finish.html", item=data_result)
+        self.render(Configuration.TEMPLATE_DIR + "finish.html",
+                    item=data_result)
+
 
 class ProgressHandler(tornado.web.RequestHandler):
     def get(self):
-        result = "{}";
-        uuid = self.get_argument('uploadKey')        
+        result = "{}"
+        uuid = unicode(self.get_argument('uploadKey'))
         if uuid in UPLOADS_KEYS:
             result = str(UPLOADS_KEYS[uuid])
-        self.write(json.dumps(result))
+        self.write(result)
         self.set_header("Content-Type", "application/json")
 
 
@@ -108,13 +107,13 @@ class MainHandler(tornado.web.RequestHandler):
 
 def load_config():
     config = ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), "..", 
-                "uploader.conf"))
+    config.read(os.path.join(os.path.dirname(__file__), "..", "uploader.conf"))
     Configuration.TEMPLATE_DIR = config.get('http', 'template_dir')
     Configuration.UPLOAD_FILES_DIR = config.get('http', 'upload_files_dir')
     Configuration.STATIC_DIR = config.get('http', 'static_dir')
-    Configuration.SERVER_PORT = config.get('http', 'port') 
+    Configuration.SERVER_PORT = config.get('http', 'port')
     Configuration.SERVER_HOST = config.get('http', 'host')
+
 
 def run():
     load_config()
