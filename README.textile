@@ -34,6 +34,15 @@ This code following PEP8 style guide for Python code.
 http://www.python.org/dev/peps/pep-0008/
 
 
+TESTS:
+
+FOR CLIENT SIDE:
+I did some tests to this prototype for client side using Jasmine framework, 
+it does make test javascript really fun
+http://pivotal.github.com/jasmine/ (see more on jasmine page)
+I didn't create any script to run my jasmine tests but (normally I do it)
+For run this tests open SpecRunner.html(test/javascript/SpecRunner.html) file on browser and see the results
+
 
 RUN:
 You can run this project using makefile
