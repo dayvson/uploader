@@ -1,6 +1,9 @@
-How to for installation and for running this project
+TO SEE THIS PROJECT ONLINE
+http://max.comum.org:8888/
+
 
 INSTALLATION:
+How to for installation and for running this project
 
 TORNADO FRAMEWORK:
 Automatic installation: Tornado is listed in PyPI and can be installed with pip or easy_install. Note that the source distribution includes demo applications that are not present when Tornado is installed in this way, so you may wish to download a copy of the source tarball as well.
@@ -49,5 +52,4 @@ $ make test
 
 RUN:
 You can run this project using makefile
-
 $ make 
