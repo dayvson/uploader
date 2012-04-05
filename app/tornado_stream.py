@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# app/__init__.py - Part of superuploader test for soundcloud
+# app/tornado_stream.py - Part of superuploader test for soundcloud
 #
 # Copyright (C) 2012  Maxwell Dayvson <dayvson@gmail.com>
 #
@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Entry point file for the superuploader.
+"""
 This module's goal is to provide a uploader system with progress
 for soundcloud challenge.
 This file run() does this job by starting the http server (Tornado).
@@ -45,8 +45,8 @@ class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
         super(StreamHTTPConnection, self).__init__(
             stream, address, request_callback, no_keep_alive, xheaders)
 
-        # Just read the comments on our `_on_handlers' method and
-        # realize why we're creating such an attribute
+        # Just read the comments on `_on_handlers' method and
+        # realize why I created such an attribute
         self.readed_data = ''
         self.chunk_size = 4096
         self.content_length = 0
@@ -107,9 +107,9 @@ class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
             return
 
     def read_chunk(self):
-        # To fix this problem we have an attribute that holds the size
-        # of data readed and we'll compare this size with content-length
-        # and we'll return the 100-continue http status until this
+        # To fix this problem I have an attribute that holds the size
+        # of data readed and I'll compare this size with content-length
+        # and I'll return the 100-continue http status until this
         # readed size becomes the same as content-length.
         chunk_size = min(
             self.chunk_size,

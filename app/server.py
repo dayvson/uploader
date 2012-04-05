@@ -1,6 +1,6 @@
 # -*- Coding: utf-8; Mode: Python -*-
 #
-# app/__init__.py - Part of superuploader test for soundcloud
+# app/server.py - Part of superuploader test for soundcloud
 #
 # Copyright (C) 2012  Maxwell Dayvson <dayvson@gmail.com>
 #
@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Entry point file for the superuploader.
+"""
 This module's goal is to provide a uploader system with progress
 for soundcloud.
 This file run() does this job by starting the http server (Tornado).
@@ -114,10 +114,8 @@ def load_config():
     Configuration.SERVER_PORT = config.get('http', 'port')
     Configuration.SERVER_HOST = config.get('http', 'host')
 
-
-def run():
-    load_config()
-    application = tornado.web.Application([
+def get_app():
+    return tornado.web.Application([
         (r"/static/(.*)",   StaticFileHandler,
                             {"path": Configuration.STATIC_DIR}),
         (r"/uploader",      UploadHandler),
@@ -127,6 +125,10 @@ def run():
                             {"path": Configuration.UPLOAD_FILES_DIR}),
         (r"/",              MainHandler)
     ])
+    
+def run():
+    load_config()
+    application = get_app()
     http_server = StreamHTTPServer(application)
     http_server.listen(Configuration.SERVER_PORT, Configuration.SERVER_HOST)
     tornado.ioloop.IOLoop.instance().start()
