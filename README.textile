@@ -53,3 +53,28 @@ $ make test
 RUN:
 You can run this project using makefile
 $ make 
+
+
+
+EXTRA NOTES:
+
+Let me explain my solution:
+
+How does it works?
+
+The server side captures de the user's request and then reads the file's byte stream asynchronously and increases the amount of BYTES_LOADED in a dictionary. I use this dictionary at '/progress' route. Each upload receives a key to be used as an identifier. I'll use this key at '/progress' route to make it work on old browsers.
+
+I had to extend the HTTPConection class to implement a stream-based reader of the request body. I had to do this because Tornado reads the entire request and stores it at server's memory by default.
+
+
+CLIENT SIDE:
+
+I implemented the client side solution without any frameworks like jQuery or Mootools.
+Particularly, I would prefer to one of these frameworks in an usual job, but I haven't done it to show my javascript skills.
+
+The solution is:
+If the browser supports upload via XHR2 (HTML5 - http://www.w3.org/TR/XMLHttpRequest) then I use XHR because the client knows how much data was sent to the server, so we can calculate the upload progress on client side.
+
+Otherwise I do the upload using POST FORM + HIDDEN IFRAME (to old browsers like Firefox 3 or IE7+). In this case I did XHR Pooling to make a request for the  '/progress?UploadKey=UUID' route each second and that route returns information about upload progress till the upload finish.
+
+Actually, I would like to invest more time writing more automated tests and other cool stuff on this prototype. 
