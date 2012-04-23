@@ -9,15 +9,17 @@ TORNADO FRAMEWORK:
 Automatic installation: Tornado is listed in PyPI and can be installed with pip or easy_install. Note that the source distribution includes demo applications that are not present when Tornado is installed in this way, so you may wish to download a copy of the source tarball as well.
 
 PIP installation: 
+<pre>
 $ pip install tornado 
+</pre>
 
 Manual installation: Download tornado-2.2.tar.gz (https://github.com/downloads/facebook/tornado/tornado-2.2.tar.gz)
-
+<pre>
 $ tar xvzf tornado-2.2.tar.gz
 $ cd tornado-2.2
 $ python setup.py build
 $ sudo python setup.py install
-
+</pre>
 
 CONFIGURATION:
 Create a new configuration file based on the uploader.conf.sample and call him uploader.conf
@@ -48,12 +50,15 @@ For run this tests open SpecRunner.html(test/javascript/SpecRunner.html) file on
 
 SERVER SIDE:
 I did some unit tests for this prototype for run these
+<pre>
 $ make test
+</pre>
 
 RUN:
 You can run this project using makefile
+<pre>
 $ make 
-
+</pre>
 
 
 EXTRA NOTES:
@@ -78,3 +83,74 @@ If the browser supports upload via XHR2 (HTML5 - http://www.w3.org/TR/XMLHttpReq
 Otherwise I do the upload using POST FORM + HIDDEN IFRAME (to old browsers like Firefox 3 or IE7+). In this case I did XHR Pooling to make a request for the  '/progress?UploadKey=UUID' route each second and that route returns information about upload progress till the upload finish.
 
 Actually, I would like to invest more time writing more automated tests and other cool stuff on this prototype. 
+
+
+SECOND PART OF CHALLENGE:
+
+As a second part of challenge, I talked with Sean and He ask to me: 
+How can we improve this app to notifier the system when the user's finished the upload and transcode this and when the transcode was finished notifier the users and others apps ?
+
+So, I decided to improve my challenge put this
+
+How does it works:
+
+    1 => USER'S UPLOAD SOME MUSIC 
+    2  => SEND MESSAGE TO A WORKER TO TRANSCODE AUDIO
+    3  => A WORKER CONSUME THIS MESSAGE AND TRANSCODE AUDIO TO FINAL FORMAT (USING FFMPEG TO TRANSCODE TO CODEC AAC and CONTAINER MP4)
+          3.1 => THIS WORKER SEND MESSAGE TO A QUEUE PUSH NOTIFICATIONS TO BE ABLE TO NOTIFIER OTHER WORKERS (TO NOTIFIER THE USER, YOUR AUDIO IS AVAILABLE)
+    4 We can create how many kind of workers we want
+    => WORKER FOR PUSH NOTIFICATION IOS 
+		=> WORKER FOR PUSH NOTIFICATION ANDROID
+    => WORKER FOR SEND EMAIL NOTIFICATIONS
+
+
+I could use something like Minion(Ruby) or Celery(Python) to process jobs over AMQP in an easy way but  following the idea to has the minimum number of dependencies as I can. 
+I did this by my self, just using a asynchronous AMQP 0-9-1 client called Stormed-Amqp.
+
+
+To run this project with these worker you must have to install FFMPEG, RABBITMQ, Stormed-Amqp and RUN my Makefile.
+
+Follow the steps below to install these dependencies.
+
+To install FFmpeg from source with the specified versions follow the steps bellow:
+
+<pre>
+  git clone git://git.videolan.org/ffmpeg
+  cd ffmpeg
+  git checkout n0.8.7 -b tag_n0.8.7
+  ./configure --prefix=/usr --disable-ffserver --disable-ffplay --enable-shared
+  make
+  make install
+</pre>
+
+And also installing RabbitMQ
+Follow the steps to installing RabbitMQ in this url http://www.rabbitmq.com/download.html
+
+To install Stormed-Amqp
+<pre>
+$ git clone https://github.com/paolo-losi/stormed-amqp
+$ cd stormed-amqp
+$ sudo python setup.py install
+</pre>
+
+
+
+** HOW TO START
+
+To run this project with workers for transcode you will need to install FFMPEG
+Open at least 3 shells and in the first one run
+In the first shell run (This will start a worker to transcode the user audio files to MP4/AAC)
+* I didn't check type/extension of file so please for this test upload some audio file only
+<pre>
+  $ make transcode
+</pre>
+
+In the second shell run (This will start a worker to notifier other system when the upload was complete):
+<pre>
+  $ make push
+</pre>
+
+In the last one start Tornado web server (You can try on http://localhost:8888)
+<pre>
+  $ make run
+</pre>
