@@ -31,10 +31,8 @@ import tornado.httpserver
 from tornado.web import asynchronous, StaticFileHandler
 from ConfigParser import ConfigParser
 from tornado_stream import StreamHTTPServer
-
-
-UPLOADS_KEYS = dict()
-
+from stormed import Connection, Message
+from rabbit_helper import RabbitHelper
 
 class Configuration:
     STATIC_DIR = "./static/"
@@ -45,7 +43,6 @@ class Configuration:
 
 
 class UploadHandler(tornado.web.RequestHandler):
-
     @property
     def content_length(self):
         return int(self.request.headers['Content-Length'])
@@ -53,23 +50,32 @@ class UploadHandler(tornado.web.RequestHandler):
     @asynchronous
     def post(self):
         uuid = self.get_argument('uploadKey')
+        bytes_loaded = len(self.request.connection.readed_data)
         UPLOADS_KEYS[uuid] = {
-            "bytes_loaded": len(self.request.connection.readed_data),
+            "bytes_loaded": bytes_loaded,
             "bytes_total": self.content_length
         }
-        bytes_loaded = len(self.request.connection.readed_data)
         if  bytes_loaded == self.content_length:
             name = self.request.files['datafile'][0].filename or ""
-            fileName = uuid + name
-            UPLOADS_KEYS[uuid]['fileName'] = fileName
-            self.write("/download/" + fileName)
-            output = open(os.path.join(Configuration.UPLOAD_FILES_DIR,
-                            fileName), 'w')
-            output.write(self.request.files['datafile'][0].body)
-            output.close()
-            print "FINISH UPLOAD"
+            file_name = '%s_%s' % (uuid, name)
+            UPLOADS_KEYS[uuid]['fileName'] = file_name
+            self._write_file(file_name)
+            self.write("/download/" + file_name)
+            rabbit.on_done = self.on_message_sent
+            rabbit.send_message(str(UPLOADS_KEYS[uuid]), queue='uploaded',
+                                routing_key='uploaded')
             self.finish()
+            
+    def on_message_sent(self):
+        print "ON DONE"
 
+    def _write_file(self, file_name):
+        output = open(os.path.join(Configuration.UPLOAD_FILES_DIR,
+                        file_name), 'w')
+        output.write(self.request.files['datafile'][0].body)
+        output.close()
+        #self.request.connection.clean_data()
+        print "FINISH UPLOAD"
 
 class SaveHandler(tornado.web.RequestHandler):
     def post(self):
@@ -125,10 +131,15 @@ def get_app():
                             {"path": Configuration.UPLOAD_FILES_DIR}),
         (r"/",              MainHandler)
     ])
-    
+
+
+UPLOADS_KEYS = dict()
+rabbit = RabbitHelper()
+
+ 
 def run():
     load_config()
-    application = get_app()
+    application = get_app() 
     http_server = StreamHTTPServer(application)
     http_server.listen(Configuration.SERVER_PORT, Configuration.SERVER_HOST)
     tornado.ioloop.IOLoop.instance().start()
