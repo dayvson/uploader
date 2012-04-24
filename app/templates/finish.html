@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Super Upload</title>
+<title>Super Upload Detail Page</title>
 <link rel="stylesheet" href="/static/css/uploader.css" type="text/css" />
 </head>
 <body>
-    <h1>Super Upload</h1>
+    <h1>Super Upload Detail Page</h1>
     {% if item %}
     <a href="/download/{{item['fileName']}}">{{item['fileName']}}</a><br>
-    {{ item['description'] }}
+    <span id="description">{{ item['description'] }}</span>
     {% end %}
 </form>
 
