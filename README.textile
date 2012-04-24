@@ -59,7 +59,10 @@ cd splinter
 sudo make install
 </pre>
 
-I did some unit tests for this prototype for run these
+To run the tests open two shell screens:
+In the first one run the application
+<pre>make</pre>
+In the second one run the tests
 <pre> make test </pre>
 
 
