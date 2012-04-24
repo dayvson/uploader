@@ -29,7 +29,6 @@ from tornado.util import b
 from app.server import get_app as _app, MainHandler, ProgressHandler,\
                             SaveHandler, UPLOADS_KEYS
 
-
 class HTTPClientApplicationsRoutes(AsyncHTTPTestCase, LogTrapTestCase):
     def get_http_client(self):
         return AsyncHTTPClient(io_loop=self.io_loop)
@@ -57,14 +56,6 @@ class HTTPClientApplicationsRoutes(AsyncHTTPTestCase, LogTrapTestCase):
         self.assertEqual(response.body, b("{success:true}"))
         self.assertEqual(UPLOADS_KEYS['123']['description'], "Message")
 
-    def test_post_message(self):
-        UPLOADS_KEYS['123'] = dict()
-        response = self.fetch("/save", method="POST",
-                              body="uploadKey=123&description=Message")
-        self.assertEqual(response.code, 200)
-        self.assertEqual(response.body, b("{success:true}"))
-        self.assertEqual(UPLOADS_KEYS['123']['description'], "Message")
-
     def test_progress_route(self):
         UPLOADS_KEYS["123"] = {
             "bytes_loaded": 10,
@@ -73,6 +64,14 @@ class HTTPClientApplicationsRoutes(AsyncHTTPTestCase, LogTrapTestCase):
         response = self.fetch("/progress?uploadKey=123", method="GET")
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body, str(UPLOADS_KEYS["123"]))
+
+
+class TestHTTPClientApplicationsRoutesSuite(unittest.TestSuite):
+    def __init__(self):
+        unittest.TestSuite.__init__(self,map(HTTPClientApplicationsRoutes,
+                                              ("test_home",
+                                               "test_post_message",
+                                               "test_progress_route")))
 
 
 def run():
