@@ -7,8 +7,13 @@
       var func = scope ? this.delegate(scope, callback) : callback;
       if(object.addEventListener)
         object.addEventListener(eventName, func, true);
-      else if(object.attachEvent)
+      else if(object.attachEvent){
         object.attachEvent('on'+eventName, func);
+      }else if(object[eventName]){
+      	object[eventName] = func;
+      }else if(object['on'+eventName]){
+      	object['on'+eventName] = func;
+      }
       return object;
     },
     delegate:function(obj, method){

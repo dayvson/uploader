@@ -6,7 +6,10 @@
     this.uploadUrl = uploadUrl;
     this.timeForUpdate = timeForUpdate;
     this.xhrSupport = Util.hasXHRUpload();
+    this.xhr;
     this.timeInterval;
+    this.checkProgresstimeInterval;
+    this.progress = null;
     this.isUploadComplete = false;
     this.init();
   }
@@ -30,32 +33,38 @@
       }
     },
     startUploadByXHR:function(){
+      this.isUploadComplete = false;
       this.key = Util.getKey();
       var fd = new FormData();
       var file = this.input.files[0];
       fd.append(this.input.name, file);
-      var xhr = new XMLHttpRequest();
-      Util.addEvent(xhr.upload, "progress", this._uploadProgress, this);
+      var xhr = this.xhr = new XMLHttpRequest();
+      if(xhr.upload)Util.addEvent(xhr.upload, "progress", this._uploadProgress, this);
       Util.addEvent(xhr, "load", this._uploadComplete, this);
       Util.addEvent(xhr, "error", this._uploadFailed, this);
       Util.addEvent(xhr, "abort", this._uploadCanceled, this);
       xhr.open("POST", this.uploadUrl + "?uploadKey=" + this.key);
       xhr.send(fd);
+      this._startVerifyProgress( null );
       this.onStart();
     },
     _uploadComplete:function(evt){
-      this.onComplete(evt.currentTarget.responseText);
+      this.isUploadComplete = true;
+      this.onComplete(this.xhr.responseText);
     },
     _uploadFailed:function(evt){
+      this.isUploadComplete = false;
       this.onError();
     },
     _uploadCanceled:function(evt){
+      this.isUploadComplete = false;
       this.onCancel();        
     },
     _uploadProgress:function(evt){
       if (evt.lengthComputable) {
         var percent = Math.round(evt.loaded / evt.total * 100);
         this.onProgress(evt.loaded, evt.total, percent);
+        this._startVerifyProgress( evt.total );
       }
     },
     _onCompleteXHRPooling:function(data){
@@ -78,6 +87,35 @@
     _uploadProgressByIframe:function(){
       var params = "?uploadKey=" + this.key + "&rand="+new Date().getTime();
       Util.XHR(this.progressUrl, "GET", Util.delegate(this,this._onCompleteXHRPooling), params);
+    },
+    _startVerifyProgress:function( progress ){
+    	clearTimeout(this.checkProgresstimeInterval);    	
+    	var self = this;
+        this.checkProgresstimeInterval = setTimeout(function( scope ){
+              self._verifyProgress( progress );
+        }, 10000, this);
+    },
+    _verifyProgress:function( progress ){
+    	if(progress == null || this.progress == progress){
+    		if(this.xhrSupport){
+		        this.xhr.abort();
+		        this.onError();
+		    }else{
+	     	   Util.remove(Util.$(this.key + "__upload_iframe__"));
+	     	   this.onError();
+	      	}
+    	}else{
+	    	var self = this;
+	    	this.progress = progress;
+	    	this._startVerifyProgress( null );
+    	}    	
+    },
+    setProgress:function(progress){
+    	var event = progress;
+    	event['lengthComputable'] = true;
+    	if(event){
+    		this._uploadProgress(event);
+    	}
     },
     startUploadByIframe:function(){
       this.key = Util.getKey();
@@ -117,9 +155,7 @@
         } else if (iframe.document) {
             content = iframe.document.body.innerHTML;
         }
-      }catch(e){
-        
-      }
+      }catch(e){}
       this.onComplete(content);
       setTimeout(function(){
         try{

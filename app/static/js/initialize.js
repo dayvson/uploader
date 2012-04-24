@@ -11,6 +11,9 @@ window.onload = function(){
     Util.$("uploadLink").href="#";
     Util.$("uploadLink").innerHTML = "";
   }
+  superUpload.file.onError = function(data){
+    alert("Error, please retry!");
+  }
   superUpload.file.onComplete = function(data){
       this.onProgress(1,1,100);
       Util.$("uploadLink").href=data;
