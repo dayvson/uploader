@@ -20,21 +20,37 @@
 
 import unittest
 from splinter.browser import Browser
-
+import os
 
 class AcceptanceUploader(unittest.TestCase):
     def setUp(self):
         self.browser = Browser()
+        self.local_file = os.path.join(os.path.dirname(__file__), "sample_frame.jpg")
 
-    def tearDown(self):
-        self.browser.quit()
-
-    def test_max(self):
-        self.assertTrue(True)
-        
+    """
+    This test uses webdriver to navigate to home app url, and select a localfile 
+    and make a upload of this file, then check if 'Uploaded to Here' 
+    link is visible after upload reaches 100%.
+    We need to start up our server over port 8888 to webdriver navigate
+    """
     def test_upload_from_localfile(self):
         self.browser.visit('http://localhost:8888/')
-        self.browser.attach_file('datafile', '/Users/dayvson/rio_trip.jpg')
+        self.assertTrue(self.browser.is_text_not_present("Uploaded to Here"))
+        self.browser.attach_file('datafile', self.local_file)
+        while not self.browser.is_text_present('Uploaded to Here'):
+            pass
+        self.assertTrue(self.browser.is_text_present("Uploaded to Here"))
+
+    """
+    This test uses webdriver to navigate to home app url, and select a localfile 
+    and make a upload of this file when the upload is complete type a description
+    send post the form, so check if follow a redirect to detail page and 
+    the description is correct.
+    We need to start up our server over port 8888 to webdriver navigate
+    """
+    def test_upload_from_localfile_and_fill_description(self):
+        self.browser.visit('http://localhost:8888/')
+        self.browser.attach_file('datafile', self.local_file)
         self.browser.fill('description', 'Uploading file simulate clientside navigation')
         while not self.browser.is_text_present('Uploaded to Here'):
             pass
@@ -43,10 +59,15 @@ class AcceptanceUploader(unittest.TestCase):
         self.assertTrue(self.browser.is_text_present('Super Upload Detail Page'))
         self.assertTrue(self.browser.is_text_present('Uploading file simulate clientside navigation'))
 
+    def tearDown(self):
+        self.browser.quit()
+
 
 class TestAcceptanceUploaderSuite(unittest.TestSuite):
     def __init__(self):
-        unittest.TestSuite.__init__(self,map(AcceptanceUploader, ("test_upload_from_localfile")))
+        unittest.TestSuite.__init__(self,map(AcceptanceUploader, 
+            ( "test_upload_from_localfile", 
+            "test_upload_from_localfile_and_fill_description")))
 
 def run():
     unittest.main()

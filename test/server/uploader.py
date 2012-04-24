@@ -65,7 +65,7 @@ class HTTPClientApplicationsRoutes(AsyncHTTPTestCase, LogTrapTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body, str(UPLOADS_KEYS["123"]))
 
-
+        
 class TestHTTPClientApplicationsRoutesSuite(unittest.TestSuite):
     def __init__(self):
         unittest.TestSuite.__init__(self,map(HTTPClientApplicationsRoutes,
