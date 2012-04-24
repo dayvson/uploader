@@ -10,15 +10,15 @@ Automatic installation: Tornado is listed in PyPI and can be installed with pip 
 
 PIP installation: 
 <pre>
-$ pip install tornado 
+pip install tornado 
 </pre>
 
 Manual installation: Download tornado-2.2.tar.gz (https://github.com/downloads/facebook/tornado/tornado-2.2.tar.gz)
 <pre>
-$ tar xvzf tornado-2.2.tar.gz
-$ cd tornado-2.2
-$ python setup.py build
-$ sudo python setup.py install
+tar xvzf tornado-2.2.tar.gz
+cd tornado-2.2
+python setup.py build
+sudo python setup.py install
 </pre>
 
 CONFIGURATION:
@@ -48,17 +48,24 @@ http://pivotal.github.com/jasmine/ (see more on jasmine page)
 I didn't create any script to run my jasmine tests but (normally I do it)
 For run this tests open SpecRunner.html(test/javascript/SpecRunner.html) file on browser and see the results
 
+
 SERVER SIDE:
-I did some unit tests for this prototype for run these
+
+*Splinter is a tool for test web applications with a simple for find elements, form actions, and others browser actions.
+I used splinter to make some acceptances tests you can check it out on uploader_webdriver.py
 <pre>
-$ make test
+git clone https://github.com/cobrateam/splinter.git
+cd splinter
+sudo make install
 </pre>
+
+I did some unit tests for this prototype for run these
+<pre> make test </pre>
+
 
 RUN:
 You can run this project using makefile
-<pre>
-$ make 
-</pre>
+<pre>make </pre>
 
 
 EXTRA NOTES:
@@ -97,7 +104,7 @@ How does it works:
     1 => USER'S UPLOAD SOME MUSIC 
     2  => SEND MESSAGE TO A WORKER TO TRANSCODE AUDIO
     3  => A WORKER CONSUME THIS MESSAGE AND TRANSCODE AUDIO TO FINAL FORMAT (USING FFMPEG TO TRANSCODE TO CODEC AAC and CONTAINER MP4)
-          3.1 => THIS WORKER SEND MESSAGE TO A QUEUE PUSH NOTIFICATIONS TO BE ABLE TO NOTIFIER OTHER WORKERS (TO NOTIFIER THE USER, YOUR AUDIO IS AVAILABLE)
+          3.1 => THIS WORKER SEND MESSAGE TO A QUEUE PUSH NOTIFICATIONS TO BE ABLE TO NOTIFIER OTHER WORKERS (TO NOTIFIER THE USER WHEN HIS AUDIO IS AVAILABLE)
     4 We can create how many kind of workers we want
     => WORKER FOR PUSH NOTIFICATION IOS 
 		=> WORKER FOR PUSH NOTIFICATION ANDROID
@@ -112,45 +119,38 @@ To run this project with these worker you must have to install FFMPEG, RABBITMQ,
 
 Follow the steps below to install these dependencies.
 
+To install Stormed-Amqp
+<pre>
+git clone https://github.com/paolo-losi/stormed-amqp
+cd stormed-amqp
+sudo python setup.py install
+</pre>
+
+
 To install FFmpeg from source with the specified versions follow the steps bellow:
 
 <pre>
-  git clone git://git.videolan.org/ffmpeg
-  cd ffmpeg
-  git checkout n0.8.7 -b tag_n0.8.7
-  ./configure --prefix=/usr --disable-ffserver --disable-ffplay --enable-shared
-  make
-  make install
+git clone git://git.videolan.org/ffmpeg
+cd ffmpeg
+git checkout n0.8.7 -b tag_n0.8.7
+./configure --prefix=/usr --disable-ffserver --disable-ffplay --enable-shared
+make
+make install
 </pre>
 
 And also installing RabbitMQ
 Follow the steps to installing RabbitMQ in this url http://www.rabbitmq.com/download.html
 
-To install Stormed-Amqp
-<pre>
-$ git clone https://github.com/paolo-losi/stormed-amqp
-$ cd stormed-amqp
-$ sudo python setup.py install
-</pre>
-
-
-
-** HOW TO START
+** HOW TO START WORKERS
 
 To run this project with workers for transcode you will need to install FFMPEG
 Open at least 3 shells and in the first one run
 In the first shell run (This will start a worker to transcode the user audio files to MP4/AAC)
 * I didn't check type/extension of file so please for this test upload some audio file only
-<pre>
-  $ make transcode
-</pre>
+<pre>make transcode</pre>
 
 In the second shell run (This will start a worker to notifier other system when the upload was complete):
-<pre>
-  $ make push
-</pre>
+<pre>make push</pre>
 
 In the last one start Tornado web server (You can try on http://localhost:8888)
-<pre>
-  $ make run
-</pre>
+<pre>make run</pre>
