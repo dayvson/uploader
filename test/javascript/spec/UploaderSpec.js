@@ -10,7 +10,7 @@ describe("Uploader", function() {
   	var form = Util.create("form", {"id":"form_test"});  			
   	var input = Util.create("input", {"type":"file", "name":"datafile", "id":"datafile"});
   	form.appendChild(input);
-  	_uploader = new Uploader(form, input, "/progress", "/uploader");
+  	_uploader = new Uploader(form, input, "/progress", "/uploader", 1000);
   });
   
   afterEach(function(){
@@ -26,7 +26,7 @@ describe("Uploader", function() {
  		_uploader.onComplete = function(msg){
  		  expect(msg).toBe(response_upload);
  		}
- 		_uploader.start();
+ 		_uploader.startUploadByXHR();
 
   });
   
@@ -35,7 +35,7 @@ describe("Uploader", function() {
 		    request.err();
 		};
  		spyOn(_uploader, "onError");
- 		_uploader.start(); 		
+ 		_uploader.startUploadByXHR(); 		
  		expect(_uploader.onError).toHaveBeenCalled();
   });
   
@@ -43,7 +43,7 @@ describe("Uploader", function() {
     in upload progress for 10 consecutive seconds", function(){
   	jasmine.Clock.useMock();	
  		spyOn(_uploader, "onError");
- 		_uploader.start();
+ 		_uploader.startUploadByXHR();
  		jasmine.Clock.tick( 10000 );
 		expect(_uploader.onError ).toHaveBeenCalled();
       
@@ -51,7 +51,7 @@ describe("Uploader", function() {
   it("should be execute onError after 20 seconds, and receive the save progress", function(){
   	jasmine.Clock.useMock();	
  		spyOn(_uploader, "onError");
- 		_uploader.start();
+ 		_uploader.startUploadByXHR();
 		_uploader.setProgress({loaded:100, total:1000});
 		jasmine.Clock.tick( 5000 );
 		_uploader.setProgress({loaded:100, total:1000});
@@ -59,6 +59,16 @@ describe("Uploader", function() {
 		expect( _uploader.onError ).toHaveBeenCalled();
       
   })
+  it ("should show progess message when upload is not complete",function () {
+    var prgs = {loaded:100, total:1000};
+    _uploader.setProgress(prgs);
+    _uploader.onProgress = function(bytesLoaded, bytesTotal, perc){
+      expect(bytesLoaded).toBe(prgs.bytesLoaded);
+      expect(bytesTotal).toBe(prgs.bytesTotal);
+      expect(perc).toBe(10);
+      expect(_uploader.isUploadComplete).toBeFalsy();
+    };
+  });
   
   it ("should show status to finished when upload reaches 100%", function () {   
     var response_upload = "/download?uploadKey=1234";
@@ -67,18 +77,17 @@ describe("Uploader", function() {
 		    request.receive(200, response_upload);
 		}; 
     var prgs = {loaded:1000, total:1000};
-
+    _uploader.setProgress(prgs);
     _uploader.onProgress = function(bytesLoaded, bytesTotal, perc){
-      expect(bytesLoaded).toBe(prgs.loaded);
-      expect(bytesTotal).toBe(prgs.total);
+      expect(bytesLoaded).toBe(prgs.bytesLoaded);
+      expect(bytesTotal).toBe(prgs.bytesTotal);
       expect(perc).toBe(100);
     }
     _uploader.onComplete = function(msg){
-      expect (_uploader.isUploadComplete()).toBeTruthy();
+      expect (_uploader.isUploadComplete).toBeTruthy();
       expect(msg).toBe(response_upload);
     };
-    _uploader.start();
-    _uploader.setProgress(prgs.loaded, prgs.total);    
+    _uploader.startUploadByXHR();
   });
 
 });
