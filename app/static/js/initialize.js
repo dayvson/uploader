@@ -1,8 +1,7 @@
 window.onload = function(){
   var superUpload = new SuperUpload("uploader", "datafile", "description", 
-                                    "savebutton", "/progress", "/uploader", "/save");
+                                    "savebutton", "/progress", "/uploader", "/save", 1000);
   superUpload.file.onProgress = function(bytes_loaded, bytes_total, perc){
-      console.log(bytes_loaded, bytes_total, perc);
       Util.$("progressFill").style.width = perc + "%";
       Util.$("progressFill").innerHTML = perc+ "%";
   }
