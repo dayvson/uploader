@@ -45,6 +45,9 @@ class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
         super(StreamHTTPConnection, self).__init__(
             stream, address, request_callback, no_keep_alive, xheaders)
 
+       
+
+    def clean_data(self):
         # Just read the comments on `_on_handlers' method and
         # realize why I created such an attribute
         self.readed_data = ''
@@ -52,6 +55,7 @@ class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
         self.content_length = 0
 
     def _on_headers(self, data):
+        self.clean_data()
         try:
             data = native_str(data.decode('latin1'))
             eol = data.find("\r\n")
@@ -131,9 +135,9 @@ class StreamHTTPConnection(tornado.httpserver.HTTPConnection):
 
         # I don't need to read the whole buffer to realize that it's
         # bigger than the size tornado expects by default
-        # if len(data) > self.stream.max_buffer_size:
-        #     logging.info("Malformed HTTP request from %s: %s",
-        #                  self.address[0], e)
-        #     self.stream.close()
-        #     return
+        if len(self.readed_data) > self.stream.max_buffer_size:
+            logging.info("Malformed HTTP request from %s: %s",
+                         self.address[0], e)
+            self.stream.close()
+            return
         self.read_chunk()

@@ -31,8 +31,7 @@ import tornado.httpserver
 from tornado.web import asynchronous, StaticFileHandler
 from ConfigParser import ConfigParser
 from tornado_stream import StreamHTTPServer
-from stormed import Connection, Message
-from rabbit_helper import RabbitHelper
+
 
 class Configuration:
     STATIC_DIR = "./static/"
@@ -61,20 +60,14 @@ class UploadHandler(tornado.web.RequestHandler):
             UPLOADS_KEYS[uuid]['fileName'] = file_name
             self._write_file(file_name)
             self.write("/download/" + file_name)
-            rabbit.on_done = self.on_message_sent
-            rabbit.send_message(str(UPLOADS_KEYS[uuid]), queue='uploaded',
-                                routing_key='uploaded')
             self.finish()
-            
-    def on_message_sent(self):
-        print "ON DONE"
 
     def _write_file(self, file_name):
         output = open(os.path.join(Configuration.UPLOAD_FILES_DIR,
                         file_name), 'w')
         output.write(self.request.files['datafile'][0].body)
         output.close()
-        #self.request.connection.clean_data()
+        self.request.connection.clean_data()
         print "FINISH UPLOAD"
 
 class SaveHandler(tornado.web.RequestHandler):
@@ -134,9 +127,8 @@ def get_app():
 
 
 UPLOADS_KEYS = dict()
-rabbit = RabbitHelper()
 
- 
+
 def run():
     load_config()
     application = get_app() 
