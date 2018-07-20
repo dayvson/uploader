@@ -36,7 +36,7 @@ TESTS:
 CLIENT SIDE:
 I did some tests to this prototype for client side using Jasmine framework, 
 it does make test javascript really fun
-http://pivotal.github.com/jasmine/ (see more on jasmine page)
+https://jasmine.github.io/ (see more on jasmine page)
 I didn't create any script to run my jasmine tests but (normally I do it)
 For run this tests open SpecRunner.html(test/javascript/SpecRunner.html) file on browser and see the results
 
